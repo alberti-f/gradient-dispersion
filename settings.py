@@ -12,14 +12,13 @@ import ciftools_FA as ct
 group = "338" 
 
 # directory of HCP group average data
-group_dir = "/path/to/HCP_S1200_GroupAvg_v1"
+group_dir = "/home/fralberti/Data/HCP_1200/HCP_S1200_GroupAvg_v1"
 
 # directory containing the HCP subject directories
-subj_dir = "/path/to/subject/directories"
+subj_dir = "home/fralberti/Data/HCP_1200/Subjects"
 
 # directory where all intermediate files and the final output will be saved
-output_dir = f"/path/to/output/directory"
-
+output_dir = f"/home/fralberti/Documents/BlackBox/Prj_Gradient-Variability/Results_{group}"
 # directory containing the GCCA results
 gcca_dir = f"/path/to/GCCA/results"
 
