@@ -9,7 +9,7 @@ import ciftools_FA as ct
 
 
 # group name to prefix the output files
-group = "338" 
+group = "group_name" 
 
 # directory of HCP group average data
 group_dir = "/path/to/HCP_S1200_GroupAvg_v1"
@@ -18,9 +18,9 @@ group_dir = "/path/to/HCP_S1200_GroupAvg_v1"
 subj_dir = "/path/to/HCP/subject/directories"
 
 # directory where all intermediate files and the final output will be saved
-output_dir = "/path/to/output/directory"
+output_dir = "/"
 # directory containing the GCCA results
-gcca_dir = f"/path/to/GCCA/results"
+gcca_dir ="/path/to/GCCA/results"
 
 # path to cognitive data
 cog_path = "/path/to/unrestricted/data.csv"
