@@ -8,7 +8,7 @@ import ciftools_FA as ct
 import pandas as pd
 
 # directory containing subdirectories named fter subject IDs that contain the timeseries and surface files
-root_dir = "/home/fralberti/Data/HCP_S1200"
+root_dir = "/home/fralberti/Data/HCP_1200"
 # directory where all intermediate files and the final output will be saved
 output_dir = "/home/fralberti/Documents/BlackBox/Prj_Network-variability/Results"
 # path to cognitive data
