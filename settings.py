@@ -19,6 +19,7 @@ subj_dir = "/path/to/HCP/subject/directories"
 
 # directory where all intermediate files and the final output will be saved
 output_dir = "/path/to/output/directory"
+
 # directory containing the GCCA results
 gcca_dir ="/path/to/GCCA/results"
 
