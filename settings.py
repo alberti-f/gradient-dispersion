@@ -23,13 +23,15 @@ output_dir = "/path/to/output/directory"
 # directory containing the GCCA results
 gcca_dir ="/path/to/GCCA/results"
 
+
 # path to cognitive data
-cog_path = "/path/to/unrestricted/data.csv"
+cog_path = "/home/fralberti/Data/HCP_1200/unrestricted_fralberti_4_8_2022_8_22_23.csv"
 
 # path to restricted data
-rest_path = "/path/to/restricted/data.csv"
+rest_path = "/home/fralberti/Data/HCP_1200/RESTRICTED_arianna_9_7_2022_8_13_11.csv"
 
 # .txt containing IDs of subjects to include in the analysis
+
 subj_list = '/path/to/subject_list.txt'
 f = open(subj_list, 'r')
 subj_id = np.array(f.read().splitlines(), dtype='int32')
