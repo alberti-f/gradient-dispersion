@@ -25,10 +25,10 @@ gcca_dir ="/path/to/GCCA/results"
 
 
 # path to cognitive data
-cog_path = "/home/fralberti/Data/HCP_1200/unrestricted_fralberti_4_8_2022_8_22_23.csv"
+cog_path = "/path/to/unrestricted/data.csv"
 
 # path to restricted data
-rest_path = "/home/fralberti/Data/HCP_1200/RESTRICTED_arianna_9_7_2022_8_13_11.csv"
+rest_path = "/path/to/RESTRICTED/data.csv"
 
 # .txt containing IDs of subjects to include in the analysis
 
