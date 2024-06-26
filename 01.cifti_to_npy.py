@@ -8,11 +8,28 @@ from joblib import Parallel, delayed
 from settings import * 
 #----------------------------------------------------------------------------------------------------
 
+
+
 ''' Save vertex/parcel/network-level GCCA (individual and group median) from dscalar.nii to .npy arrays'''
 
 template = nib.load(f"{group_dir}/S1200.sulc_MSMAll.32k_fs_LR.dscalar.nii")
+
 # Write function to run in parallel
 def fun(subj, output_dir, nw_N, lbl_N):
+    """
+    Process individual gradients and save them to files.
+
+    Parameters:
+    - subj (int): Subject identifier.
+    - output_dir (str): Directory to save the output files.
+    - nw_N (int): Number of networks.
+    - lbl_N (int): Number of parcels.
+
+    Returns:
+    - grad_NW (ndarray): Array of subject's network-level gradients.
+    - grad_lbl (ndarray): Array of subject's label-level gradients.
+    - grad_vtx (ndarray): Array of subject's vertex-level gradients.
+    """
 
     # Save individual gradients to cifti
     out_grad = f"{gcca_dir}/{subj}.GCCA.32k_fs_LR.dscalar.nii"
