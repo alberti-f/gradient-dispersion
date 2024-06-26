@@ -12,6 +12,7 @@ from sklearn.utils import shuffle
 from sklearn.linear_model import LinearRegression
 from scipy.stats import zscore, spearmanr
 from statsmodels.stats.multitest import multipletests
+import sys, os, re
 
 #----------------------------------------------------------------------------------------------------
 
@@ -107,7 +108,7 @@ def perm_lm_cv(splits, data, X_cols, y_col, n_perm, nj):
 # Aggregate highly correlated predictors
 disp_ROIs = pd.read_csv(f'{output_dir}/{group}.gcca_dispersion.csv', header=0, usecols=["DispROI_tot"])
 disp_ROIs = np.int32(np.unique(disp_ROIs)[1:])
-cog_df = pd.read_csv(f'{output_dir}/{group}.cog_data.csv', index_col=0, header=0)
+cog_df = pd.read_csv(f'{output_dir}/{group}.cog_data.csv', index_col=0, header=0).dropna()
 
 
 G = "G1"
@@ -120,7 +121,7 @@ for i, j in combinations(disp_ROIs, 2):
 
     r = cog_df[[f'{G}_ROI{i}_Disptot', f'{G}_ROI{j}_Disptot']].corr().loc[f'{G}_ROI{i}_Disptot', f'{G}_ROI{j}_Disptot']
 
-    if r >= 0.6 and np.int32(f"{i}{j}") not in non_redundant:
+    if r >= 0.5 and np.int32(f"{i}{j}") not in non_redundant:
         cog_df[f'{G}_ROI{i}{j}_Disptot'] = cog_df[[f'{G}_ROI{i}_Disptot', f'{G}_ROI{j}_Disptot']].mean(axis=1)
         non_redundant.append(np.int32(f"{i}{j}"))
         non_redundant.remove(i)
@@ -128,17 +129,20 @@ for i, j in combinations(disp_ROIs, 2):
         redundant.extend([i,j])
 
 
-
+# Correct for covariates
 comp_cols = ['CogFluidComp_Unadj', 'CogCrystalComp_Unadj', 'G']
 ROI_cols = np.array([f'G1_ROI{i}_Disptot' for i in non_redundant])
-covars = ['C(Gender)', 'Age_in_Yrs', 'Handedness', 'SSAGA_Educ', "FD"]
+covars = ['Gender', 'Age_in_Yrs', 'Handedness', 'SSAGA_Educ', "FD"]
 
 
 # Correct for covariates
+covars = ['C(Gender)', 'Age_in_Yrs', 'Handedness', 'SSAGA_Educ', "FD"]
 X = ' + '.join(covars)
 for col in comp_cols:
     lm = ols(f'{col} ~ {X}', data=cog_df).fit()
-    cog_df[col] = lm.resid
+    lm = lm.get_influence() 
+
+    cog_df[col] = lm.resid_studentized_internal
 
 #----------------------------------------------------------------------------------------------------
 
@@ -146,40 +150,104 @@ for col in comp_cols:
 
 n_perm = 1000
 
-cog_df.dropna(inplace=True)
+# cog_df.dropna(inplace=True)
 subj_id = cog_df.index
+n_splits = 100
+stratify_by = "Gender"
 
-# Stratified shuffle split
-split = list(StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=0).split(cog_df, cog_df["Gender"]))
-train, test = split[0]
 
-train_data = cog_df.iloc[train, :]
-test_data = cog_df.iloc[test, :]
+# If path to t-test results is provided runs validation test in hold-out set
+# Otherwise, run cross validation on the training set
+if len(sys.argv) == 1:
+    print("\n\nRunning cross-validation on training set")
+    print("Number of subjects:", len(cog_df))
+    print("Number of permutations:", n_perm)
+    print("Number of splits:", n_splits)
+    print("Stratified by:", stratify_by)
 
-splits = list(StratifiedShuffleSplit(n_splits=10, test_size=0.1, random_state=0, ).split(train_data, train_data["Gender"]))
+    splits = list(StratifiedShuffleSplit(n_splits=n_splits, test_size=0.1, random_state=0).split(cog_df, cog_df[stratify_by]))
 
-results = {}
-for comp in comp_cols:
-    results[comp] = {}
-    results[comp]["F"], results[comp]['t'], null_f, null_t = perm_lm_cv(splits, cog_df, ROI_cols, comp, n_perm, nj)
+    results = {}
+    for comp in comp_cols:
+        results[comp] = {}
+        results[comp]["F"], results[comp]['t'], null_f, null_t = perm_lm_cv(splits, cog_df, ROI_cols, comp, n_perm, nj)
 
-significant_models = []
-for comp in comp_cols:
-    f_results = results[comp]["F"].mean()
-    f_results["F_p"] = sum(null_f > f_results['F']) / len(null_f)
-    print("\n\n", comp, ":")
-    print(f_results)
-    print("\n")
+    significant_models = []
+    for comp in comp_cols:
+        f_results = results[comp]["F"].mean()
+        f_results["F_p"] = sum(null_f > f_results['F']) / len(null_f)
+        print("\n\n", comp, ":")
+        print(f_results)
+        print("\n")
 
-    t_results = results[comp]["t"].groupby(results[comp]["t"].index).agg('mean')
-    t_avg = t_results.t.values.reshape(-1,1)
-    t_results["t_p"] = (np.abs(null_t) > np.abs(t_avg)).sum(axis=1) / null_t.shape[1]
-    t_results["t_p_adj"] = multipletests(t_results.t_p, method='fdr_bh')[1]
-    print(t_results)
-    print("\n")
+        weights = results[comp]["F"]["F"].values
+        weights -= weights.min()
+        t_results = results[comp]["t"].groupby(results[comp]["t"].index).agg('mean')
+        t_results["coeff"] = results[comp]["t"]["coeff"].groupby(results[comp]["t"].index).agg(
+                np.average, weights=weights)#kwargs={'weights': results[comp]["t"]["fold"]}
+        t_avg = t_results.t.values.reshape(-1,1)
+        t_results["t_p"] = (np.abs(null_t) > np.abs(t_avg)).sum(axis=1) / null_t.shape[1]
+        t_results["t_p_adj"] = multipletests(t_results.t_p, method='fdr_bh')[1]
+        print("\n", null_t.shape, t_avg.shape, t_results.shape, "\n")
+        print(t_results)
+        print("\n")
 
-    if f_results["F_p"] < 0.05:
-        significant_models.append(comp)
+        
+
+        t_results.to_csv(f'{output_dir}/{group}.{comp}_t_results.csv')
+
+        if f_results["F_p"] < 0.05:
+            significant_models.append(comp)
+
+
+
+
+else:
+    n_perm = n_perm * n_splits
+    print("\n\nValidating model on hold-out set")
+    print("Number of subjects:", len(cog_df))
+    print("Number of permutations:", n_perm)
+
+    train_dir = sys.argv[1]
+    for comp in comp_cols:
+        print(f"\n\n{comp}\n")
+
+        # Load t-test results
+        pattern = fr".*{comp}_t_results.*\.csv"
+        for filename in os.listdir(train_dir):
+            if re.match(pattern, filename):
+                t_results = pd.read_csv(f"{train_dir}/{filename}", index_col=0).loc[ROI_cols]
+                print("Train set model:\n", t_results.coeff)
+
+        # Get model F and t values using the training set's coefficients
+        X = zscore(cog_df[ROI_cols], axis=0)
+        y = zscore(cog_df[comp])
+        coeff_avg = t_results.coeff.values
+        lm = LinearRegression(fit_intercept=False).fit(X, y)
+        lm.coef_ = coeff_avg
+
+        y_pred = lm.predict(X)
+        r2 = r2_score(y, y_pred)
+        mse = mean_squared_error(y, y_pred)
+        r = np.corrcoef(y, y_pred)[0,1]
+        t = t_value(lm, X, y)
+        F = f_value(lm, X, y)
+
+        # Permutation test
+        nlm = LinearRegression(fit_intercept=False)
+        null_lm = Parallel(n_jobs=nj, prefer="processes")(delayed(nlm.fit)(X, shuffle(y)) for _ in range(n_perm))
+        F_null = Parallel(n_jobs=nj, prefer="processes")(delayed(f_value)(nlm, X, shuffle(y)) for nlm in null_lm)
+        t_null = Parallel(n_jobs=nj, prefer="processes")(delayed(t_value)(nlm, X, shuffle(y)) for nlm in null_lm)
+        t_null = np.asanyarray(t_null)
+
+        F_p = sum(F_null > F) / n_perm
+        t_p = (np.abs(t_null) > np.abs(t)).sum(axis=0) / n_perm
+        tp_adj = multipletests(t_p, method='fdr_bh')[1]
+
+        t_results =  pd.DataFrame(np.vstack([lm.coef_, t, t_p, tp_adj]).T, index=ROI_cols, columns=['coeff', 't', 'p', 'p_adj'])
+
+        print(f"F-test:\nF: {F}, R2: {r2}, MSE: {mse}, F_p: {F_p}")
+        print(t_results)
 
 
 #----------------------------------------------------------------------------------------------------
