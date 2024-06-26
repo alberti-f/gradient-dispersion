@@ -85,8 +85,7 @@ for subj in subj_id:
 cog_df = pd.read_csv(cog_path,
                     usecols = ['Subject', 'PicVocab_Unadj', 'ReadEng_Unadj', 'CardSort_Unadj', 'Flanker_Unadj', 'ProcSpeed_Unadj',
                                'VSPLOT_TC', 'PMAT24_A_CR', 'PicSeq_Unadj', 'ListSort_Unadj', 'IWRD_TOT',
-                               'CogEarlyComp_Unadj', 'CogFluidComp_Unadj', 'CogCrystalComp_Unadj', 'CogTotalComp_Unadj',
-                               'ER40_CR'],
+                               'CogFluidComp_Unadj', 'CogCrystalComp_Unadj'],
                      index_col = 'Subject').loc[subj_id,:]
     
 cog_df["FD"] = rest_FD
