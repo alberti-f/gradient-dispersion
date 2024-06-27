@@ -69,4 +69,29 @@ np.save(f'{gcca_dir}/{group}.gcca.{nw_N}NWs', np.array(grad_NW))
 np.save(f'{gcca_dir}/{group}.gcca.{lbl_N}Parc', np.array(grad_lbl))
 np.save(f'{gcca_dir}/{group}.gcca.32k_fs_LR', np.array(grad_vtx)) 
 
+
+from neuromaps import images, nulls, stats, datasets
+import nibabel as nib
+import hcp_utils as hcp
+
+
+
+# Test correlation with DME gradients
+
+print("Comparing GCCA gradients with DME gradients: ")
+pairs = [(1, 1), (3, 2), (2, 3)]
+for n1, n2 in pairs:
+
+    grad_lr = datasets.fetch_annotation(source="margulies2016", desc=f"fcgradient0{n1}")
+    grad_lr = images.load_data(grad_lr)
+
+    gcca_lr = nib.load("/home/fralberti/Documents/BlackBox/Prj_Gradient-variability/Results_338/338.gcca.32k_fs_LR.dscalar.nii").get_fdata()
+    gcca_lr = hcp.cortex_data(gcca_lr[n2-1])
+    rotated = nulls.alexander_bloch(gcca_lr, atlas='fsLR', density='32k',
+                                    n_perm=1000)
+
+
+    corr, pval = stats.compare_images(gcca_lr, grad_lr, nulls=rotated)
+    print(f'\tDME: {n1} - GCCA: {n2} \t r = {corr:.02f}, p = {pval:.04f}')
+
 #--------------------------------------------------------------------------------------------------
