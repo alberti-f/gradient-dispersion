@@ -10,7 +10,8 @@ There is a growing interest in neuroscience for how individual-specific structur
 
 ![image](https://github.com/alberti-f/gradient-dispersion/blob/main/methods_figure.png)\
 **Figure 1.** *Visual summary of the analyses. The analyses are composed of two streamlines. First (gray box), we concatenated individual resting-state time series and used GCCA to project them into a common latent space. Within this space we measured vertex-wise dispersion maps that were then thresholded to identify clusters of maximum variability. Then (outside the gray box), we parcellated the original time series using an atlas to which the variability clusters had been added. We built a correlation matrix of regional time series and thresholded it to the top 10% of connections to obtain a graph of functional connectivity. Graph topology was then analyzed to characterize the role of different regions within it. BOLD, blood-oxygen-level-dependent; GCCA, generalized canonical correlation; FC, functional connectivity.*
-## Data
+
+### Data
 * **Human Connectome Project**\
 The study uses data ftom the [HCP dataset](https://www.humanconnectome.org/) and the scripts assume the HCP data directory structure. The necessary data are:
     * 4 resting-state fMRI runs
@@ -22,5 +23,5 @@ The analyses require that the latent dimensions of rsfMRI time series and indivi
 For the graph-theory setion of the analyses the the cortical surface parcellation by [Schaefer and colleagues (2018)](https://people.csail.mit.edu/ythomas/publications/2018LocalGlobal-CerebCor.pdf) which can be found [here](https://github.com/ThomasYeoLab/CBIG/tree/master/stable_projects/brain_parcellation/Schaefer2018_LocalGlobal/Parcellations/HCP)
 
 
-## Settings file
+### Settings file
 To make the data available to the scrips their local paths have to be spexified in the *settings.txt.* file,  where other parameters can also be tweaked.
