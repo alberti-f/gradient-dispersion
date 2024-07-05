@@ -1,5 +1,5 @@
-# Understanding the link between functional profiles and intelligence through dimensionality reduction and graph analysis
-Francesco Alberti, Arianna Menardi, Daniel S. Margulies, Antonino Vallesi
+# Understanding the link between functional profiles and intelligence through dimensionality reduction and graph analysis*
+*Francesco Alberti, Arianna Menardi, Daniel S. Margulies, Antonino Vallesi
 
 
 This repository contains the scripts used to perform the analyses of a study investigating the relationdship between interindividual variability of intelligence and the functional organization of the cerebral cortex.\
