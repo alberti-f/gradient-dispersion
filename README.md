@@ -8,7 +8,7 @@ This repository contains the scripts used to perform the analyses of a study inv
 
 > _There is a growing interest in neuroscience for how individual-specific structural and functional features of the cortex relate to cognitive traits. This work builds on previous research which, by using classical high-dimensional approaches, has proven that the interindividual variability of functional connectivity (FC) profiles reflects differences in fluid intelligence. To provide an additional perspective into this relationship, the present study uses a recent framework for investigating cortical organization: functional gradients. This approach places local connectivity profiles within a common low-dimensional space whose axes are functionally interpretable dimensions. Specifically, this study uses a data-driven approach to model the association between FC variability and interindividual differences in intelligence. For one of these loci, in the right ventral-lateral prefrontal cortex (vlPFC), we describe an association between fluid intelligence and the relative functional distance of this area from sensory and high-cognition systems. Furthermore, the topological properties of this region indicate that, with decreasing functional affinity with high-cognition systems, vlPFC functional connections are more evenly distributed across all networks. Participating in multiple functional networks may reflect a better ability to coordinate sensory and high-order cognitive systems._
 
-![alt text](https://github.com/alberti-f/gradient-dispersion/blob/main/methods_figure.png)
+![](https://github.com/alberti-f/gradient-dispersion/blob/main/methods_figure.png)
 
 ## Data
 * **Human Connectome Project**\
