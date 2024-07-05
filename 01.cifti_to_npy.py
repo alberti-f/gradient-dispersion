@@ -85,7 +85,7 @@ for n1, n2 in pairs:
     grad_lr = datasets.fetch_annotation(source="margulies2016", desc=f"fcgradient0{n1}")
     grad_lr = images.load_data(grad_lr)
 
-    gcca_lr = nib.load("/home/fralberti/Documents/BlackBox/Prj_Gradient-variability/Results_338/338.gcca.32k_fs_LR.dscalar.nii").get_fdata()
+    gcca_lr = nib.load(f'{gcca_dir}/{group}.gcca.32k_fs_LR').get_fdata()
     gcca_lr = hcp.cortex_data(gcca_lr[n2-1])
     rotated = nulls.alexander_bloch(gcca_lr, atlas='fsLR', density='32k',
                                     n_perm=1000)
