@@ -6,7 +6,7 @@ import pandas as pd
 from statsmodels.formula.api import ols
 from joblib import Parallel, delayed
 from itertools import combinations
-from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
 from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.utils import shuffle
 from sklearn.linear_model import LinearRegression
@@ -14,7 +14,7 @@ from scipy.stats import zscore, spearmanr
 from statsmodels.stats.multitest import multipletests
 import sys, os, re
 
-#----------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------
 
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
@@ -42,8 +42,8 @@ def f_value(regressor, X, y):
 
 def single_cv(train_index, test_index, data, X_cols, y_col, n_perm, nj):
     train_index, test_index = data.index[train_index], data.index[test_index]
-    X_train, y_train = data.loc[train_index, X_cols], data.loc[train_index, y_col]
-    X_test, y_test = data.loc[test_index, X_cols], data.loc[test_index, y_col]
+    X_train, y_train = data.loc[train_index, X_cols].copy(), data.loc[train_index, y_col].copy()
+    X_test, y_test = data.loc[test_index, X_cols].copy(), data.loc[test_index, y_col].copy()
 
     X_train = zscore(X_train, axis=0)
     X_test = zscore(X_test, axis=0)
@@ -102,7 +102,7 @@ def perm_lm_cv(splits, data, X_cols, y_col, n_perm, nj):
 
     return f_results, t_results, f_null, t_null
 
-#----------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------
 
 
 # Aggregate highly correlated predictors
@@ -137,23 +137,33 @@ covars = ['Gender', 'Age_in_Yrs', 'Handedness', 'SSAGA_Educ', "FD"]
 
 # Correct for covariates
 covars = ['C(Gender)', 'Age_in_Yrs', 'Handedness', 'SSAGA_Educ', "FD"]
+
 X = ' + '.join(covars)
 for col in comp_cols:
     lm = ols(f'{col} ~ {X}', data=cog_df).fit()
-    lm = lm.get_influence() 
+    cog_df[col] = lm.resid
+#---------------------------------------------------------------------------------------------------
 
-    cog_df[col] = lm.resid_studentized_internal
+def replace_with_quantiles(data, n=10):
+    n += 1
+    quantiles = np.percentile(data, np.linspace(0, 100, 11)) 
+    quantiles[-1] += 1e-9 
+    
+    quantile_indices = np.digitize(data, quantiles) 
+    return quantile_indices
 
-#----------------------------------------------------------------------------------------------------
 
 ''' Run permutation tests '''
 
-n_perm = 1000
+n_perm = 100
 
 # cog_df.dropna(inplace=True)
 subj_id = cog_df.index
-n_splits = 100
-stratify_by = "Gender"
+n_splits = 10
+
+cog_df["CogFluidComp_Unadj_bin"] = replace_with_quantiles(cog_df["CogFluidComp_Unadj"], n=10)
+cog_df["CogCrystalComp_Unadj_bin"] = replace_with_quantiles(cog_df["CogCrystalComp_Unadj"], n=10)
+cog_df["G_bin"] = replace_with_quantiles(cog_df["G"], n=10)
 
 
 # If path to t-test results is provided runs validation test in hold-out set
@@ -163,28 +173,30 @@ if len(sys.argv) == 1:
     print("Number of subjects:", len(cog_df))
     print("Number of permutations:", n_perm)
     print("Number of splits:", n_splits)
-    print("Stratified by:", stratify_by)
 
-    splits = list(StratifiedShuffleSplit(n_splits=n_splits, test_size=0.1, random_state=0).split(cog_df, cog_df[stratify_by]))
 
     results = {}
     for comp in comp_cols:
+        splits = list(StratifiedKFold(n_splits=n_splits).split(cog_df, cog_df[f"{comp}_bin"]))
         results[comp] = {}
         results[comp]["F"], results[comp]['t'], null_f, null_t = perm_lm_cv(splits, cog_df, ROI_cols, comp, n_perm, nj)
 
+
     significant_models = []
+    f_results_all = {}
     for comp in comp_cols:
-        f_results = results[comp]["F"].mean()
+        f_results = results[comp]["F"].agg("mean")
         f_results["F_p"] = sum(null_f > f_results['F']) / len(null_f)
         print("\n\n", comp, ":")
         print(f_results)
         print("\n")
+        f_results_all[comp] = f_results
 
         weights = results[comp]["F"]["F"].values
         weights -= weights.min()
-        t_results = results[comp]["t"].groupby(results[comp]["t"].index).agg('mean')
+        t_results = results[comp]["t"].groupby(results[comp]["t"].index).agg("mean")
         t_results["coeff"] = results[comp]["t"]["coeff"].groupby(results[comp]["t"].index).agg(
-                np.average, weights=weights)#kwargs={'weights': results[comp]["t"]["fold"]}
+                np.average, weights=weights)
         t_avg = t_results.t.values.reshape(-1,1)
         t_results["t_p"] = (np.abs(null_t) > np.abs(t_avg)).sum(axis=1) / null_t.shape[1]
         t_results["t_p_adj"] = multipletests(t_results.t_p, method='fdr_bh')[1]
@@ -198,7 +210,6 @@ if len(sys.argv) == 1:
 
         if f_results["F_p"] < 0.05:
             significant_models.append(comp)
-
 
 
 
@@ -270,5 +281,3 @@ corr_results = pd.DataFrame(np.vstack([r.loc['G1_ROI6_Disptot', 'CardSort_Unadj'
 
 
 print("Spearman correlation between individual tests and G1_ROI6_Disptot\n", corr_results)
-
-#--------------------------------------------------------------------------------------------------
