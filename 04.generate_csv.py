@@ -1,6 +1,5 @@
 # Import dependencies
 
-import os
 import nibabel as nib
 import numpy as np
 import pandas as pd
@@ -14,7 +13,7 @@ if len(sys.argv) == 1:
 else:
     clusters_path = sys.argv[1]
 
-#----------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------
 
 # Generate table with vertex affiliations, gradients, and dispersion measures
 
@@ -116,7 +115,7 @@ grads = np.load(f'{gcca_dir}/{group}.gcca.32k_fs_LR.npy').copy()
 for grd in ['tot', 'G1', 'G2', 'G3']:
     for i in range(3):
         grads_df = pd.DataFrame(np.vstack([ROIs[f"DispROI_{grd}"], grads[:, i, :]]).T, columns=np.hstack(["ROI", subj_id]))
-        grads_avg = grads_df.groupby("ROI").agg(np.median).reset_index().T.iloc[:,1:].drop('ROI')
+        grads_avg = grads_df.groupby("ROI").agg(np.mean).reset_index().T.iloc[:,1:].drop('ROI')
         cols = [f"G{i+1}_ROI{int(n)}_Disp{grd}" for n in grads_avg.columns]
         grads_avg = grads_avg.rename(columns=dict(zip(grads_avg.columns, cols))).rename_axis('Subject')
         cog_df = cog_df.merge(grads_avg, left_index=True, right_index=True)
