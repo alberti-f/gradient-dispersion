@@ -43,7 +43,7 @@ lbl_N = 400
 nw_N = 7
 
 # Path to Shaefer2018 atlas registered to HCP
-networks_dir = '/home/fralberti/Data/Shaefer2018_HCP'
+networks_dir = '/path/to/Shaefer2018_HCP'
 networks_txt = f'{networks_dir}/Schaefer2018_{lbl_N}Parcels_{nw_N}Networks_order_info.txt'
 networks = nib.load(f'{networks_dir}/Schaefer2018_{lbl_N}Parcels_{nw_N}Networks_order.dlabel.nii')
 NW_tbl = ct.agg_networks(networks, networks, func=np.median, by_hemisphere=False, label_tbl=True)[1]
