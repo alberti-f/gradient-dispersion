@@ -1,28 +1,25 @@
 # Import dependencies
 
-from settings import *
+import sys, os, re
+from itertools import combinations
+from joblib import Parallel, delayed
 import numpy as np
+from scipy.stats import zscore, spearmanr
 import pandas as pd
 from statsmodels.formula.api import ols
-from joblib import Parallel, delayed
-from itertools import combinations
-from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
+from statsmodels.stats.multitest import multipletests
+from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.utils import shuffle
 from sklearn.linear_model import LinearRegression
-from scipy.stats import zscore, spearmanr
-from statsmodels.stats.multitest import multipletests
-import sys, os, re
+from settings import *
 
 #---------------------------------------------------------------------------------------------------
 
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error
-
-
-''' Define functions to parallelize permutation testing '''
+# Define functions to parallelize permutation testing
 
 def t_value(regressor, X, y):
+
     y_pred = regressor.predict(X)
     mse = mean_squared_error(y, y_pred)
     std_error = np.sqrt(mse)
@@ -41,6 +38,7 @@ def f_value(regressor, X, y):
 
 
 def single_cv(train_index, test_index, data, X_cols, y_col, n_perm, nj):
+    
     train_index, test_index = data.index[train_index], data.index[test_index]
     X_train, y_train = data.loc[train_index, X_cols].copy(), data.loc[train_index, y_col].copy()
     X_test, y_test = data.loc[test_index, X_cols].copy(), data.loc[test_index, y_col].copy()
@@ -102,6 +100,15 @@ def perm_lm_cv(splits, data, X_cols, y_col, n_perm, nj):
 
     return f_results, t_results, f_null, t_null
 
+def replace_with_quantiles(data, n=10):
+
+    n += 1
+    quantiles = np.percentile(data, np.linspace(0, 100, 11)) 
+    quantiles[-1] += 1e-9 
+    
+    quantile_indices = np.digitize(data, quantiles) 
+    return quantile_indices
+
 #---------------------------------------------------------------------------------------------------
 
 
@@ -142,24 +149,16 @@ X = ' + '.join(covars)
 for col in comp_cols:
     lm = ols(f'{col} ~ {X}', data=cog_df).fit()
     cog_df[col] = lm.resid
+
 #---------------------------------------------------------------------------------------------------
 
-def replace_with_quantiles(data, n=10):
-    n += 1
-    quantiles = np.percentile(data, np.linspace(0, 100, 11)) 
-    quantiles[-1] += 1e-9 
-    
-    quantile_indices = np.digitize(data, quantiles) 
-    return quantile_indices
-
-
-''' Run permutation tests '''
+# Run KFold validation with permutation test
 
 n_perm = 100
-
-# cog_df.dropna(inplace=True)
-subj_id = cog_df.index
 n_splits = 10
+
+cog_df.dropna(inplace=True)
+subj_id = cog_df.index
 
 cog_df["CogFluidComp_Unadj_bin"] = replace_with_quantiles(cog_df["CogFluidComp_Unadj"], n=10)
 cog_df["CogCrystalComp_Unadj_bin"] = replace_with_quantiles(cog_df["CogCrystalComp_Unadj"], n=10)
@@ -180,7 +179,6 @@ if len(sys.argv) == 1:
         splits = list(StratifiedKFold(n_splits=n_splits).split(cog_df, cog_df[f"{comp}_bin"]))
         results[comp] = {}
         results[comp]["F"], results[comp]['t'], null_f, null_t = perm_lm_cv(splits, cog_df, ROI_cols, comp, n_perm, nj)
-
 
     significant_models = []
     f_results_all = {}
@@ -204,14 +202,10 @@ if len(sys.argv) == 1:
         print(t_results)
         print("\n")
 
-        
-
         t_results.to_csv(f'{output_dir}/{group}.{comp}_t_results.csv')
 
         if f_results["F_p"] < 0.05:
             significant_models.append(comp)
-
-
 
 else:
     n_perm = n_perm * n_splits
@@ -260,16 +254,15 @@ else:
         print(f"F-test:\nF: {F}, R2: {r2}, MSE: {mse}, F_p: {F_p}")
         print(t_results)
 
-
 #----------------------------------------------------------------------------------------------------
 
-
-''' Test correlation with individual tests '''        
+# Test correlation with individual tests        
         
 # test correlation between Fluid intelligence and its components
-r, p = spearmanr(cog_df[['CardSort_Unadj', 'Flanker_Unadj', 'PMAT24_A_CR', 'PicSeq_Unadj', 'ListSort_Unadj', 'CogFluidComp_Unadj']], nan_policy='omit')
-
-cols = ['CardSort_Unadj', 'Flanker_Unadj', 'PMAT24_A_CR', 'PicSeq_Unadj', 'ListSort_Unadj', 'CogFluidComp_Unadj', 'G1_ROI6_Disptot']
+r, p = spearmanr(cog_df[['CardSort_Unadj', 'Flanker_Unadj', 'PMAT24_A_CR', 'PicSeq_Unadj',
+                         'ListSort_Unadj', 'CogFluidComp_Unadj']], nan_policy='omit')
+cols = ['CardSort_Unadj', 'Flanker_Unadj', 'PMAT24_A_CR', 'PicSeq_Unadj',
+        'ListSort_Unadj', 'CogFluidComp_Unadj', 'G1_ROI6_Disptot']
 r, p = spearmanr(cog_df[cols], nan_policy='omit')
 r = pd.DataFrame(r, index=cols, columns=cols)
 p = pd.DataFrame(p, index=cols, columns=cols)
@@ -278,6 +271,5 @@ h, pAdj, _, _ = multipletests(p.loc['G1_ROI6_Disptot', 'CardSort_Unadj':'ListSor
 
 corr_results = pd.DataFrame(np.vstack([r.loc['G1_ROI6_Disptot', 'CardSort_Unadj':'ListSort_Unadj'], pAdj, h]).T,
              columns=['rho', 'p_adj', 'h'], index=['CardSort_Unadj', 'Flanker_Unadj', 'PMAT24_A_CR', 'PicSeq_Unadj', 'ListSort_Unadj'])
-
 
 print("Spearman correlation between individual tests and G1_ROI6_Disptot\n", corr_results)
