@@ -1,6 +1,5 @@
 # Import dependencies
 
-import os
 import nibabel as nib
 import numpy as np
 import pandas as pd
@@ -13,47 +12,44 @@ if len(sys.argv) == 1:
     clusters_path = f"{output_dir}/{group}.gcca_disp_clusters.32k_fs_LR.dscalar.nii"
 else:
     clusters_path = sys.argv[1]
-#----------------------------------------------------------------------------------------------------
 
+#---------------------------------------------------------------------------------------------------
 
-''' Generate table with vertex affiliations, gradients, and dispersion measures '''
+# Generate table with vertex affiliations, gradients, and dispersion measures
 
-grad_SD = nib.load(f'{output_dir}/{group}.gcca_dispersion.32k_fs_LR.dscalar.nii')
-cifti_59k = nib.load(f'{gcca_dir}/{subj_id[0]}.GCCA.32k_fs_LR.dscalar.nii')
+grad_SD = nib.load(f"{output_dir}/{group}.gcca_dispersion.32k_fs_LR.dscalar.nii")
+cifti_59k = nib.load(f"{gcca_dir}/{subj_id[0]}.GCCA.32k_fs_LR.dscalar.nii")
 
 # Create parcel label array
 parc_lbl = []
 vv = []
 hemi = []
-for struct in ['CIFTI_STRUCTURE_CORTEX_LEFT', 'CIFTI_STRUCTURE_CORTEX_RIGHT']:
+for struct in ["CIFTI_STRUCTURE_CORTEX_LEFT", "CIFTI_STRUCTURE_CORTEX_RIGHT"]:
     NWos, NWn, NWvv = ct.struct_info(struct, networks)
     Gos, Gn, Gvv = ct.struct_info(struct, cifti_59k)
     shared_vv = np.isin(NWvv, Gvv)
     parc_lbl.extend(networks.get_fdata()[0, NWos : NWos + NWn][shared_vv])
     vv.extend(NWvv[shared_vv])
-    h = (0 if struct=='CIFTI_STRUCTURE_CORTEX_LEFT' else 1)
+    h = (0 if struct=="CIFTI_STRUCTURE_CORTEX_LEFT" else 1)
     hemi.extend(np.repeat(h, Gn))
 
 
 # Create network label array
-parc_to_NW = ct.agg_networks(networks, networks, func='mean', by_hemisphere=False, label_tbl=True)[1]
-NW_lbl = parc_to_NW.set_index('label').loc[parc_lbl, 'network'].values
+parc_to_NW = ct.agg_networks(networks, networks, func="mean", by_hemisphere=False, label_tbl=True)[1]
+NW_lbl = parc_to_NW.set_index("label").loc[parc_lbl, "network"].values
 
 # Create dataframe for tests
-disp_df = pd.DataFrame(np.vstack([vv, hemi, parc_lbl, NW_lbl, grad_SD.get_fdata()]).T, columns = ['Vtx', 'Hemi', 'Parc', 'NW', 'Disp_tot', 'Disp_G1', 'Disp_G2', 'Disp_G3'])
+disp_df = pd.DataFrame(np.vstack([vv, hemi, parc_lbl, NW_lbl, grad_SD.get_fdata()]).T, columns = ["Vtx", "Hemi", "Parc", "NW", "Disp_tot", "Disp_G1", "Disp_G2", "Disp_G3"])
 
 clusters = nib.load(clusters_path).get_fdata().T
-disp_df[['DispROI_tot', 'DispROI_G1', 'DispROI_G2', 'DispROI_G3']] = clusters
+disp_df[["DispROI_tot", "DispROI_G1", "DispROI_G2", "DispROI_G3"]] = clusters
 
-
-disp_df.to_csv(f'{output_dir}/{group}.gcca_dispersion.csv', index=False)
+disp_df.to_csv(f"{output_dir}/{group}.gcca_dispersion.csv", index=False)
 print(disp_df.head())
 
-#----------------------------------------------------------------------------------------------------
-'''Compute individual average framewise displacement'''
+#---------------------------------------------------------------------------------------------------
 
-# def rotational_displacement(X):
-    
+# Compute individual average framewise displacement
 
 radius = 50.0
 rest_FD = []
@@ -73,21 +69,22 @@ for subj in subj_id:
 
         FD = translation_deltas + rotations_deltas
         runwise_FD += FD.sum()
-    
+
     rest_FD.append(np.mean(runwise_FD))
 
+#---------------------------------------------------------------------------------------------------
 
-#----------------------------------------------------------------------------------------------------
-
-''' Generate table with subject data for analyses '''
+# Generate table with subject data for analyses
 
 # Load cognitive scores
 cog_df = pd.read_csv(cog_path,
-                    usecols = ['Subject', 'PicVocab_Unadj', 'ReadEng_Unadj', 'CardSort_Unadj', 'Flanker_Unadj', 'ProcSpeed_Unadj',
-                               'VSPLOT_TC', 'PMAT24_A_CR', 'PicSeq_Unadj', 'ListSort_Unadj', 'IWRD_TOT',
-                               'CogFluidComp_Unadj', 'CogCrystalComp_Unadj'],
+                    usecols = ['Subject', 'PicVocab_Unadj', 'ReadEng_Unadj',
+                               'CardSort_Unadj', 'Flanker_Unadj', 'ProcSpeed_Unadj',
+                               'VSPLOT_TC', 'PMAT24_A_CR', 'PicSeq_Unadj',
+                               'ListSort_Unadj', 'IWRD_TOT', 'CogFluidComp_Unadj',
+                               'CogCrystalComp_Unadj'],
                      index_col = 'Subject').loc[subj_id,:]
-    
+
 cog_df["FD"] = rest_FD
 
 # Calculate weighted factors
@@ -118,7 +115,7 @@ grads = np.load(f'{gcca_dir}/{group}.gcca.32k_fs_LR.npy').copy()
 for grd in ['tot', 'G1', 'G2', 'G3']:
     for i in range(3):
         grads_df = pd.DataFrame(np.vstack([ROIs[f"DispROI_{grd}"], grads[:, i, :]]).T, columns=np.hstack(["ROI", subj_id]))
-        grads_avg = grads_df.groupby("ROI").agg(np.median).reset_index().T.iloc[:,1:].drop('ROI')
+        grads_avg = grads_df.groupby("ROI").agg(np.mean).reset_index().T.iloc[:,1:].drop('ROI')
         cols = [f"G{i+1}_ROI{int(n)}_Disp{grd}" for n in grads_avg.columns]
         grads_avg = grads_avg.rename(columns=dict(zip(grads_avg.columns, cols))).rename_axis('Subject')
         cog_df = cog_df.merge(grads_avg, left_index=True, right_index=True)
@@ -131,16 +128,14 @@ print(cog_df.head())
 
 #----------------------------------------------------------------------------------------------------
 
+# Measure clusters' overlap with networks
 
-
-''' Measure clusters' overlap with networks '''
-
-disp_df = pd.read_csv(f"{output_dir}/{group}.gcca_dispersion.csv", header=0, usecols=["Vtx", "NW", f"DispROI_tot"])
-disp_df = disp_df[disp_df[f"DispROI_tot"] > 0]
+disp_df = pd.read_csv(f"{output_dir}/{group}.gcca_dispersion.csv", header=0, usecols=["Vtx", "NW", "DispROI_tot"])
+disp_df = disp_df[disp_df["DispROI_tot"] > 0]
 ROI_names = [f"ROI{int(i)+1}" for i in np.arange(disp_df["DispROI_tot"].max())]
 print(ROI_names)
 
-clusters = disp_df.groupby([f"DispROI_tot", "NW"]).agg("count")["Vtx"].reset_index().pivot(index=f"DispROI_tot", columns="NW", values="Vtx")
+clusters = disp_df.groupby(["DispROI_tot", "NW"]).agg("count")["Vtx"].reset_index().pivot(index="DispROI_tot", columns="NW", values="Vtx")
 clusters.columns = np.array(nw_name)[clusters.columns.astype("int32")-1]
 clusters.loc["TOT", :] = clusters.sum()
 clusters.loc[:, "TOT"] = clusters.sum(axis=1)
@@ -154,10 +149,11 @@ clusters = clusters.merge(missing_NWs, left_index=True, right_index=True)[np.hst
 
 clusters = (clusters.T / clusters.T.sum() * 100).T * 2
 
-clusters.rename(columns={'SalVentAttn':'VAN', 'DorsAttn':'DAN', 'Default':'DMN', 'Cont':'FPN'}, index=dict(zip(clusters.index, ROI_names)), inplace=True)
-clusters = clusters.loc[ROI_names, :'TOT']
+clusters.rename(columns={"SalVentAttn":"VAN", "DorsAttn":"DAN", "Default":"DMN", "Cont":"FPN"},
+                index=dict(zip(clusters.index, ROI_names)), inplace=True)
+clusters = clusters.loc[ROI_names, :"TOT"]
 clusters[clusters.isna()] = 0
 
 print(clusters)
 
-#--------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------------------

@@ -33,9 +33,7 @@ np.save(f'{output_dir}/{group}.gcca_dispersion.{lbl_N}Parc', dispersion_parc)
 np.save(f'{output_dir}/{group}.gcca_dispersion.32k_fs_LR', dispersion_vtx)
 #----------------------------------------------------------------------------------------------------
 
-
-
-''' Save dscalar files'''
+# Save dscalar files
 
 # Load gcca data
 gcca_nw = np.load(f'{gcca_dir}/{group}.gcca.{nw_N}NWs.npy')
@@ -81,7 +79,3 @@ ct.save_dscalar(scalars, networks, out, names=['All', 'Gradient_1', 'Gradient_2'
 scalars = dispersion_nw[:, vtx_nw]
 out = f'{output_dir}/{group}.gcca_dispersion.{lbl_N}Parc_{nw_N}NWs.32k_fs_LR.dscalar.nii'
 ct.save_dscalar(scalars, networks, out, names=['All', 'Gradient_1', 'Gradient_2', 'Gradient_3'])
-
-
-
-

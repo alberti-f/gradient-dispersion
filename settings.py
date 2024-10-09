@@ -5,6 +5,7 @@
 import numpy as np
 import nibabel as nib
 import ciftools_FA as ct
+import pandas as pd
 
 
 
@@ -42,10 +43,12 @@ lbl_N = 400
 nw_N = 7
 
 # Path to Shaefer2018 atlas registered to HCP
-networks_dir = f'/path/to/Shaefer2018_HCP'
+networks_dir = '/path/to/Shaefer2018_HCP'
 networks_txt = f'{networks_dir}/Schaefer2018_{lbl_N}Parcels_{nw_N}Networks_order_info.txt'
 networks = nib.load(f'{networks_dir}/Schaefer2018_{lbl_N}Parcels_{nw_N}Networks_order.dlabel.nii')
 NW_tbl = ct.agg_networks(networks, networks, func=np.median, by_hemisphere=False, label_tbl=True)[1]
+NW_tbl[["r", "g", "b", "a"]] = pd.DataFrame(NW_tbl['rgba'].tolist(), index=NW_tbl.index)
+NW_tbl = NW_tbl.drop(columns=['rgba'])
 nw_name = NW_tbl.groupby('name').agg(np.median).sort_values('network').index.to_list()[1:]
 
 # number of jobs for parallelized operations

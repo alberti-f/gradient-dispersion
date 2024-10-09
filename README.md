@@ -1,4 +1,4 @@
-# Understanding the link between functional profiles and intelligence through dimensionality reduction and graph analysis*
+# Understanding the link between functional profiles and intelligence through dimensionality reduction and graph analysis
 *Francesco Alberti, Arianna Menardi, Daniel S. Margulies, Antonino Vallesi*
 
 
@@ -23,7 +23,7 @@ The analyses require that the latent dimensions of rsfMRI time series and indivi
 For the graph-theory setion of the analyses the the cortical surface parcellation by [Schaefer and colleagues (2018)](https://people.csail.mit.edu/ythomas/publications/2018LocalGlobal-CerebCor.pdf) which can be found [here](https://github.com/ThomasYeoLab/CBIG/tree/master/stable_projects/brain_parcellation/Schaefer2018_LocalGlobal/Parcellations/HCP)
 
 ### Settings file
-To make the data available to the scrips their local paths have to be spexified in the *settings.txt.* file,  where other parameters can also be tweaked.
+To make the data available to the scrips their local paths have to be specified in the *settings.txt.* file,  where other parameters can also be tweaked.
 
 ## Requirements
 * **Python 3.9**\
