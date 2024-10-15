@@ -129,6 +129,9 @@ print(cog_df.head())
 print("Correlation between intelligence measures:\n",
       cog_df[["CogCrystalComp_Unadj", "CogFluidComp_Unadj", "G"]].corr())
 
+print("Summary statistics of intelligence measures:\n",
+      cog_df[["CogCrystalComp_Unadj", "CogFluidComp_Unadj", "G"]].apply(["count", "mean", "std", "var"]))
+
 #----------------------------------------------------------------------------------------------------
 
 # Measure clusters' overlap with networks
