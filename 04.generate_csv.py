@@ -126,6 +126,9 @@ cog_df.to_csv(f'{output_dir}/{group}.cog_data.csv')
 
 print(cog_df.head())
 
+print("Correlation between intelligence measures:\n",
+      cog_df[["CogCrystalComp_Unadj", "CogFluidComp_Unadj", "G"]].corr())
+
 #----------------------------------------------------------------------------------------------------
 
 # Measure clusters' overlap with networks
