@@ -53,35 +53,3 @@ nw_name = NW_tbl.groupby('name').agg(np.median).sort_values('network').index.to_
 
 # number of jobs for parallelized operations
 nj = -1
-
-radius = 50.0
-rest_FD = []
-for subj in subj_id:
-    # Compute FD of traslations
-    runs = ["REST1_LR", "REST1_RL", "REST2_LR", "REST2_RL"]
-    subj_FD = []
-    for i, run in enumerate(runs):
-        traslations = np.loadtxt(f"{subj_dir}/{subj}/MNINonLinear/Results/rfMRI_{run}/Movement_Regressors.txt",
-                                       usecols=[0,1,2], dtype="float64")
-        translation_deltas = np.abs(traslations).sum(axis=1)
-
-        rotations = np.loadtxt(f"{subj_dir}/{subj}/MNINonLinear/Results/rfMRI_{run}/Movement_Regressors.txt",
-                                       usecols=[3,4,5], dtype="float64")
-        rotations_deltas = (abs(rotations) / 360) * (2 * np.pi * radius)
-        rotations_deltas = rotations_deltas.sum(axis=1)
-
-        FD = translation_deltas + rotations_deltas
-        subj_FD.extend(FD)
-
-    rest_FD.append(subj_FD)
-
-if np.any(np.mean(rest_FD,axis=1) > 25):
-    print("WARNING: High motion subjects:")
-    ids = subj_id[np.where(np.median(rest_FD,axis=1) > 25)]
-    fd = np.mean(rest_FD,axis=1)[np.where(np.mean(rest_FD,axis=1) > 25)]
-    print("\n".join([f"{i}: {f:.2f}" for i, f in zip(ids, fd)]))
-    print("These subjects should be excluded from the analysis")
-else:
-    print("No high motion subjects")
-    print("Group average FD: ", np.mean(np.median(rest_FD,axis=1)))
-    print("Group FD range: ", np.min(np.median(rest_FD,axis=1)), np.max(np.median(rest_FD,axis=1)))

@@ -56,21 +56,32 @@ rest_FD = []
 for subj in subj_id:
     # Compute FD of traslations
     runs = ["REST1_LR", "REST1_RL", "REST2_LR", "REST2_RL"]
-    runwise_FD = 0
+    subj_FD = []
     for i, run in enumerate(runs):
-        traslations = np.loadtxt(f"{subj_dir}/{subj}/MNINonLinear/Results/rfMRI_{run}/Movement_Regressors.txt",
-                                       usecols=[0,1,2], dtype="float64")
-        translation_deltas = np.abs(traslations).sum(axis=1)
+        movparams = np.loadtxt(f"{subj_dir}/{subj}/MNINonLinear/Results/rfMRI_{run}/Movement_Regressors.txt",
+                                        usecols=[0,1,2, 3, 4, 5], dtype="float64")
 
-        rotations = np.loadtxt(f"{subj_dir}/{subj}/MNINonLinear/Results/rfMRI_{run}/Movement_Regressors.txt",
-                                       usecols=[3,4,5], dtype="float64")
-        rotations_deltas = (abs(rotations) / 360) * (2 * np.pi * radius)
-        rotations_deltas = rotations_deltas.sum(axis=1)
+        movparams[3:] = np.deg2rad(movparams[3:]) * radius
+        movparams = np.diff(movparams, axis=0)
+        
+        FD = np.linalg.norm(movparams, axis=1, ord=2)
 
-        FD = translation_deltas + rotations_deltas
-        runwise_FD += FD.sum()
+        subj_FD.extend(FD)
 
-    rest_FD.append(np.mean(runwise_FD))
+    rest_FD.append(np.mean(subj_FD))
+rest_FD = np.array(rest_FD)
+
+
+print("Group average FD: ", np.mean(rest_FD))
+print("Group FD range: ", np.min(rest_FD), np.max(rest_FD))
+
+if np.any(rest_FD > .55):
+    print("WARNING: High motion subjects:")
+    ids = subj_id[np.where(rest_FD > .55)]
+    fd = rest_FD[np.where(rest_FD > .55)]
+    print("\n".join([f"{i}: {f:.2f}" for i, f in zip(ids, fd)]))
+else:
+    print("No high motion subjects")
 
 #---------------------------------------------------------------------------------------------------
 
